@@ -1,0 +1,105 @@
+---
+title: "Estimate_CI"
+author: "Anh Nguyen"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r, include=FALSE}
+rm(list = ls())
+source("utility/setup.r")
+head(included.data, 10)
+```
+
+
+# Point Estimates and Confidence Intervals (Limit to no more than 1 page)
+• Obtain point estimates for population parameters of interest.
+• Obtain confidence intervals for those parameters, using both parametric (e.g., asymptotic) and nonparametric (e.g., bootstrap) methods. Indicate which interval you used. Interpret your results. 
+
+## Some notes
+I can construct a table to show the point estimates and CIs of multiple variables.
+
+Which variables? 
+- continuous variables (normal distribution): age, height, baseline weight, final weight
+
+- non-normal variables: months, number of comorbid conditions
+
+- binomial distribution: gender, education, tobacco, alcohol, marital status, intervention condition
+
+- multinomial distri: clinical site, race 
+
+Variables that not to be estimated: gender, intervention condition, clinical site, race 
+
+Do I want to separate samples by intervention conditions in this chapter????
+
+
+<!-- ### Normal Approximation of Binomial distribution -->
+<!-- For variables: gender, education, tobacco, alcohol, marital status -->
+<!-- Check Rosner book, Chap 5.7 and Lec 3 -->
+<!-- ```{r} -->
+
+<!-- ``` -->
+
+
+## 1. Obtain point estimates for population parameters of interest.
+Purpose: model the given data by some probability => as a way to check several assumptions like normality?
+
+What are the params of interest? E.g.: means, variances for normal distribution
+
+Sample mean and sample variance are good point estimates for population mean and variance
+
+Other: MLE (MLE can be incorrect if the assumption about underlying distribution is questionable).
+
+
+```{r}
+
+
+
+```
+
+## 2. Obtain confidence intervals for those parameters, using both parametric (e.g., asymptotic) and nonparametric (e.g., bootstrap) methods. Indicate which interval you used. Interpret your results.
+
+### Asymptotic method
+For variables that might follow normal distribution: CI for means and variances
+- unknown population mean and variance
+Approximation method for finding CIs: CLT,  slutsky's theorem
+Using MLE to construct approximate CIs: when the params are unknown
+
+```{r}
+list_CI <- list("age", "height", "wgt_base", "wgt_final")
+
+for (label_CI in list_CI){
+  print(paste("====",label_CI, "===="))
+  print(t.test(x=included.data[[label_CI]], conf.level = 0.95)$conf.int)
+  # print("Control")
+  # print(t.test(x=included.data[included.data$tx == "0", ][[label_CI]], conf.level = 0.95)$conf.int)
+  # print("Intervention")
+  # print(t.test(x=included.data[included.data$tx == "1", ][[label_CI]], conf.level = 0.95)$conf.int)
+}
+
+```
+
+
+
+### Bootstrap method
+Used when the the sample are non normal (skewed)
+
+which variables dont seem to be normal? month, comorbid
+
+```{r}
+
+list.bootstrap = list("month", "comorbid")
+for (i in list.bootstrap){
+  m <- sapply(X = 1:10000,
+                    FUN = function(X){mean(sample(x = included.data[[i]], 
+                                                  size = nrow(included.data), 
+                                                  replace = TRUE))})
+  hist(x = m, freq=FALSE, main = paste("Sampling distribution of", i))
+  print(i)
+  print(quantile(x = m, probs = c(0.025, 0.975)))
+}
+```
+
+
+
+

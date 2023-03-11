@@ -1,0 +1,2 @@
+"0","table1(~ Site + Gender + age + height + Race + comorbid + Education + Marital + Tobacco + Alcohol | Condition, data = included.data, topclass=table1.styles, overall=F, extra.col=list(`P-value`=pvalue))"
+"2","Warning: Chi-squared approximation may be incorrect"

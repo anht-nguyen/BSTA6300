@@ -1,0 +1,2 @@
+"0","mod = lm(wgt_change ~ Condition * Marital, data = included.data)"
+"0","plot(mod, which = 2)"

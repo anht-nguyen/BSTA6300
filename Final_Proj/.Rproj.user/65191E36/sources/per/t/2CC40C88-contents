@@ -1,0 +1,427 @@
+---
+title: "Final-Report"
+author: "Anh Nguyen"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+# Introduction
+
+## Background
+
+Obesity has been listed as one of the global health problems in Western countries and, together with obesity-caused cardiovascular diseases, are among the most dangerous diseases in the world. Genders and ethnicity has reportedly been factors influencing the severity of this obesity, more specifically higher prevalence is found in female than in male, and in African Americans and Hispanic American over other groups.
+
+## Motivation
+
+Controlling overweight and identifying efficient treatments for obesity are of paramount importance.
+
+## Justification to conduct the study
+
+This RCT study was carried out to determine the efficiency of a behavioral weight loss program for obese individuals at different intensities (low and moderate). The study also aimed to investigate different factors that influence the amount of weight loss, including but not limited to gender, age, ethnicity, intervention duration, and tobacco and alcohol consumption.
+
+## Scientific questions of interest
+
+-   How much weight loss do two groups (intervention and control) achieve? Do intervention group lose more weight than the control group do?
+
+-   Which factors significantly influence the weight loss outcomes and which factors do not?
+
+-   Does intervention duration correlate with the weight loss outcomes?
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(tidy.opts=list(width.cutoff=80), tidy=TRUE, out.width = "70%")
+rm(list = ls())
+source("utility/setup.r")
+```
+
+# Data Description
+
+In this study, participants were randomized to 2 groups -- an intervention group (IG) which were exposed to a moderate behavioral weight loss program and a control group (CG) which underwent the same program with low intensity. The demographic data were collected once for each participant, including clinical site, height, age, gender, race/ethnicity, number of obesity-related comorbid conditions, education, marital status, current tobacco use, and current alcohol use. Participants' weight were recorded pre- and post-intervention, as well as number of months they participated in the program. There were 261 participants enrolled (124 in IG and 137 in CG), but there were 95 records missing information of final weight and length of intervention. That means only 166 participants completed the program (76 in IG and 90 in CG). We will use these 166 records for data analysis.
+
+The primary outcome of this study is the amount of weight loss, which is the difference between baseline and final weight of each individual -- this is a continuous variable. The secondary outcomes are the time from randomization to final weight -- this can be both a continuous variable and an ordinal categorical variable -- and the status of weight loss of a participant, either losing or gaining weight -- this is a dichotomous categorical variable.
+
+The candidates for predictors of the weight loss outcomes are gender, race/ethnicity, and baseline weight. We are also going to test the predictive values of the other independent variables, such as age, clinical site, and current tobacco and alcohol use.
+
+In the below analysis, we are going to use significance level of 0.05.
+
+### Summary of demographic variables
+
+```{r, demographics}
+table1(~ Site + Gender + age + height + Race + comorbid + Education + Marital + Tobacco + Alcohol | Condition, data = included.data, topclass=table1.styles, overall=F, extra.col=list(`P-value`=pvalue))
+```
+
+There is no significant difference in the demographic variables between 2 groups.
+
+### Summary of intervention-related and outcome variables
+
+```{r, summary}
+table1(~ wgt_base + wgt_final + month + wgt_change +  Losing_Wgt_Status | Condition, data = included.data, topclass=table1.styles, overall=F, extra.col=list(`P-value`=pvalue))
+```
+
+For weight change status, those with negative weight change (final weight minus baseline weight) are considered as "Losing Weight", and others are "Not Losing Weight". We assume this outcome variable follows a binomial distribution. An important assumption needs to be made is the independence of outcome variables among participants.
+
+### Potential distribution of outcome variables
+
+```{r}
+histogram(~wgt_base | Condition, data = included.data, fit = "normal")
+xqqmath(~wgt_base | Condition, data = included.data)
+```
+
+```{r}
+histogram(~wgt_final | Condition, data = included.data, fit = "normal")
+xqqmath(~wgt_final | Condition, data = included.data)
+```
+```{r}
+histogram(~month | Condition, data = included.data)
+xqqmath(~month | Condition, data = included.data)
+```
+
+```{r}
+histogram(~wgt_change | Condition, data = included.data, fit = "normal")
+xqqmath(~wgt_change | Condition, data = included.data)
+
+```
+
+From the Q-Q plots for baseline weight, final weight, and weight change variables, it seems off in the tails, however not by much. I think it is safe to assume the normal distribution for these variables. For number of months of intervention, we will use non-parametric analysis methods.
+
+
+
+# Point Estimates and Confidence Intervals
+
+## Obtain point estimates for population parameters of interest.
+
+Sample means of the continuous variables, which are estimation for their population means, can be found in the summary tables in the section above. Here we calculate 95% CI for the means of the continuous variables that are assumed to be normal.
+```{r}
+list_cont <- list("age", "height", "wgt_base", "wgt_final", "wgt_change")
+
+for (label_cont in list_cont){
+  print(paste("====",label_cont, "===="))
+  # print(t.test(x=included.data[[label__cont]], conf.level = 0.95)$conf.int)
+  print("Control")
+  print(t.test(x=included.data[included.data$tx == "0", ][[label_cont]], conf.level = 0.95)$conf.int[1:2])
+  print("Intervention")
+  print(t.test(x=included.data[included.data$tx == "1", ][[label_cont]], conf.level = 0.95)$conf.int[1:2])
+}
+```
+
+For ordinal and non-parametric variables such as "comorbid" and "month", we use the bootstrap method to calculate 95% for their means.
+
+```{r}
+list.bootstrap = list("month", "comorbid")
+for (i in list.bootstrap){
+  m <- sapply(X = 1:10000,
+                    FUN = function(X){mean(sample(x = included.data[included.data$tx == "0", ][[i]], size = nrow(included.data[included.data$tx == "0", ]), replace = TRUE))})
+  # hist(x = m, freq=FALSE, main = paste("Sampling distribution of", i))
+  print(paste("====",i, "===="))
+  print("Control")
+  print(quantile(x = m, probs = c(0.025, 0.975)))
+  m <- sapply(X = 1:10000,
+                    FUN = function(X){mean(sample(x = included.data[included.data$tx == "1", ][[i]], size = nrow(included.data[included.data$tx == "0", ]), replace = TRUE))})
+  # hist(x = m, freq=FALSE, main = paste("Sampling distribution of", i))
+  print("Intervention")
+  print(quantile(x = m, probs = c(0.025, 0.975)))
+}
+```
+
+For variables following binomial distribution (gender, education, martial status, current tobacco and alcohol use, and losing weight status), we calculate the 95% CI for the binom proportion (for "male", "<= 12 years", "not married", "no" for smoking and drinking, and "losing weight", respectively).
+
+```{r}
+list_binom <- list("Gender", "Education", "Marital", "Tobacco", "Alcohol", "Losing_Wgt_Status")
+
+for (label in list_binom){
+  print(paste("====",label, "===="))
+  # print(t.test(x=included.data[[label__cont]], conf.level = 0.95)$conf.int)
+  print("Control")
+  print(prop.test(x=included.data[included.data$tx == "0", ][[label]], n = nrow(included.data[included.data$tx == "0", ]), correct = FALSE)$conf.int[1:2]*100)
+  print("Intervention")
+  print(prop.test(x=included.data[included.data$tx == "1", ][[label]], n = nrow(included.data[included.data$tx == "1", ]), correct = FALSE)$conf.int[1:2]*100)
+}
+```
+Most variables show overlapping 95% CI of mean between IG and CG.
+Variables such as marital status, education, and comorbid shows difference in 95% CIs of mean, however no significant difference in sample means between IG and CG are found.
+
+Weight change and Losing weight status are the only two variables showing big difference in 95% CIs of mean between 2 groups.
+
+
+
+# Hypothesis Testing
+## Weight changes pre and post intervention
+
+### Are weight losses in 2 group significant?
+
+The alternative hypotheses for 2 groups are mean weights in both groups at pre and post-intervention are different. We use paired t-test for each sample.
+
+```{r}
+t.test(
+  x = included.data[included.data$tx==0,]$wgt_final,
+  y = included.data[included.data$tx==0,]$wgt_base,
+  paired = TRUE,
+  mu = 0,
+  alternative = "two.sided",
+  conf.level = 0.95
+)
+
+t.test(
+  x = included.data[included.data$tx==1,]$wgt_final,
+  y = included.data[included.data$tx==1,]$wgt_base,
+  paired = TRUE,
+  mu = 0,
+  alternative = "two.sided",
+  conf.level = 0.95
+)
+```
+The amount of weight change in CG is not significant (mean = -0.794, p=0.072), while IG shows significant weight loss (mean = -2.48, p = 3.8e-5).
+
+### Do intervention group lose more weight than the control group do?
+In the summary table in "Data Description" section, a two-sided t test has been used to compare the difference between weight change between 2 groups. 
+The null hypothesis is 2 groups have the similar weight change after the program.
+The result from t-test rejects this H0.
+
+We can conduct a one-sided t-test with the same H0, and H1 is that weight loss in IG is greater than in CG.
+First, we test whether sample variance in weight change between 2 groups are equal:
+```{r}
+var.test(
+  x = included.data[included.data$tx==0,]$wgt_change,
+  y = included.data[included.data$tx==1,]$wgt_change,
+  ratio = 1,
+  alternative = "two.sided",
+  conf.level = 0.95
+)
+```
+Variance in weight change between 2 groups is not significantly different (p=0.113)
+
+Now, assuming equal population variance in weight change between 2 groups, we compare the mean weight change between 2 groups using one.sided test:
+
+```{r}
+t.test(
+  x = included.data[included.data$tx==1,]$wgt_change,
+  y = included.data[included.data$tx==0,]$wgt_change,
+  mu = 0,
+  var.equal = TRUE,
+  alternative = "less",
+  conf.level = 0.95
+)
+```
+Weight loss in intervention group is significantly greater than in CG (p=0.009).
+
+
+
+# Linear Model
+
+We can start by plotting the linear relationship between amount of weight change after program and other continuous variables such as age, height, and baseline weight.
+```{r}
+xyplot(wgt_change ~ age | Condition , data = included.data)
+
+xyplot(wgt_change ~ wgt_base | Condition , data = included.data)
+
+xyplot(wgt_change ~ height | Condition , data = included.data)
+
+```
+
+### Multiple linear regression model
+From these plots, we can not observe any linear relationship. 
+Now let's fit a multiple linear regression model for these continuous variables for 2 groups and perform ANOVA tests to test the H0 which is all $\beta$ equal 0 or weight change linearly depends on 3 continuous variables.
+```{r, control group}
+(linear.m0 <- lm(wgt_change ~ wgt_base + age + height, data = included.data[included.data$tx==0,], x = TRUE))
+anova(linear.m0)
+```
+```{r, intervention group}
+(linear.m1 <- lm(wgt_change ~ wgt_base + age + height, data = included.data[included.data$tx==1,], x = TRUE))
+anova(linear.m1)
+```
+
+AVOVA tests fail to reject H0, meaning that weight change does not significantly have linear relationship with age, height and baseline weight in both groups.
+This can also be interpreted that these variables are not predictors for post-intervention weight loss .
+
+
+
+### Categorical independent variables
+We use two-way ANOVA tests to predict weight change as a function of intervention condition and one of categorical variables, including clinical site, gender, race/ethnicity, number of comorbid conditions, number of months of intervention, education, marital status, and current tobacco and alcohol use.
+
+```{r}
+mod = lm(wgt_change ~ Condition * Gender, data = included.data)
+plot(mod, which = 2)
+plot(mod, add.smooth = FALSE, which = 3)
+vwgt_chgn_aov <- aov(mod)
+summary(vwgt_chgn_aov)
+```
+```{r, include = FALSE}
+mod = lm(wgt_change ~ Condition * Race, data = included.data)
+plot(mod, which = 2)
+vwgt_chgn_aov <- aov(mod)
+summary(vwgt_chgn_aov)
+```
+```{r, include = FALSE}
+mod = lm(wgt_change ~ Condition * Marital, data = included.data)
+plot(mod, which = 2)
+plot(mod, add.smooth = FALSE, which = 3)
+vwgt_chgn_aov <- aov(mod)
+summary(vwgt_chgn_aov)
+```
+```{r, include = FALSE}
+mod = lm(wgt_change ~ Condition * Tobacco, data = included.data)
+plot(mod, which = 2)
+plot(mod, add.smooth = FALSE, which = 3)
+vwgt_chgn_aov <- aov(mod)
+summary(vwgt_chgn_aov)
+```
+```{r, include = FALSE}
+mod = lm(wgt_change ~ Condition * Alcohol, data = included.data)
+plot(mod, which = 2)
+plot(mod, add.smooth = FALSE, which = 3)
+vwgt_chgn_aov <- aov(mod)
+summary(vwgt_chgn_aov)
+```
+```{r}
+mod = lm(wgt_change ~ Condition * Site, data = included.data)
+plot(mod, which = 2)
+plot(mod, add.smooth = FALSE, which = 3)
+vwgt_chgn_aov <- aov(mod)
+summary(vwgt_chgn_aov)
+```
+```{r}
+mod = lm(wgt_change ~ Condition * month, data = included.data)
+plot(mod, which = 2)
+plot(mod, add.smooth = FALSE, which = 3)
+vwgt_chgn_aov <- aov(mod)
+summary(vwgt_chgn_aov)
+```
+```{r, include = FALSE}
+mod = lm(wgt_change ~ Condition * comorbid, data = included.data)
+plot(mod, which = 2)
+vwgt_chgn_aov <- aov(mod)
+summary(vwgt_chgn_aov)
+```
+
+We use Q-Q plots and residual-versus-fit plots to check the assumptions of normality and homogeneity of variances.
+The two-way ANOVA tests for each model incorporating one of the categorical variables show the significant effect of interaction between intervention condition and gender (p=0.008) and interaction between intervention condition and clinical site (p=0.028).
+Other factors, such as months after randomization, do not show any significant effect on weight change. 
+
+
+# Categorical Data Analysis
+We will construct multiple contingency tables displaying the relationship between losing weight status and one of the categorical variables. Only the categorical variables found with significant relationship will be shown below.
+
+```{r, losing_weight vs. clinical site}
+addmargins(table(included.data$Site, included.data$Losing_Wgt_Status))
+chisq.test(table(included.data$Site, included.data$Losing_Wgt_Status))$expected
+# no cell have expected value <5 => use Chi-squared test for association
+
+chisq.test(table(included.data$Site, included.data$Losing_Wgt_Status))
+(p.site1 <- 24/38)
+(p.site2 <- 36/44)
+(p.site3 <- 25/40)
+(p.site4 <- 13/20)
+(p.site5 <- 10/24)
+
+prop.test(x=c(36, 10), n = c(44, 24), p = NULL, alternative = "two.sided",
+          correct = TRUE)
+```
+```{r, include = FALSE}
+addmargins(table(included.data$Condition, included.data$Losing_Wgt_Status))
+Expected = c(90*108, 76*108, 90*58, 76*58) / 166
+matrix(Expected, nrow =2 ) # no cell have expected value <5 => use Chi-squared test for association
+
+chisq.test(table(included.data$Condition, included.data$Losing_Wgt_Status))
+```
+```{r, losing_weight vs. gender, include = FALSE}
+addmargins(table(included.data$Gender, included.data$Losing_Wgt_Status))
+Expected = c(108*26, 108*140, 58*26, 58*140) / 166
+matrix(Expected, nrow =2 ) # no cell have expected value <5 => use Chi-squared test for association
+
+chisq.test(table(included.data$Gender, included.data$Losing_Wgt_Status))
+```
+```{r, losing_weight vs race, include = FALSE}
+addmargins(table(included.data$Race, included.data$Losing_Wgt_Status))
+chisq.test(table(included.data$Race, included.data$Losing_Wgt_Status))$expected
+# 2/8 cells have expected values less than 5, and 1 cell has value <1 => Use Fisher's exact test
+
+fisher.test(table(included.data$Race, included.data$Losing_Wgt_Status), simulate.p.value = TRUE)
+```
+```{r, losing wgt vs education, include = FALSE}
+addmargins(table(included.data$Education, included.data$Losing_Wgt_Status))
+chisq.test(table(included.data$Education, included.data$Losing_Wgt_Status))$expected
+# no cell have expected value <5 => use Chi-squared test for association
+
+chisq.test(table(included.data$Education, included.data$Losing_Wgt_Status))
+```
+```{r, losing_wgt vs marital status, include = FALSE}
+addmargins(table(included.data$Marital, included.data$Losing_Wgt_Status))
+chisq.test(table(included.data$Marital, included.data$Losing_Wgt_Status))$expected
+# no cell have expected value <5 => use Chi-squared test for association
+
+chisq.test(table(included.data$Marital, included.data$Losing_Wgt_Status))
+```
+```{r, losing weight vs smoking, include = FALSE}
+addmargins(table(included.data$smoker, included.data$Losing_Wgt_Status))
+chisq.test(table(included.data$smoker, included.data$Losing_Wgt_Status))$expected
+# no cell have expected value <5 => use Chi-squared test for association
+
+chisq.test(table(included.data$smoker, included.data$Losing_Wgt_Status))
+```
+```{r, losing weight vs drinking, include = FALSE}
+addmargins(table(included.data$drinker, included.data$Losing_Wgt_Status))
+chisq.test(table(included.data$drinker, included.data$Losing_Wgt_Status))$expected
+# no cell have expected value <5 => use Chi-squared test for association
+
+chisq.test(table(included.data$drinker, included.data$Losing_Wgt_Status))
+```
+
+Chi-squared tests were used for most contingency tables, except for the 4x2 contingency table between losing weight status and race/ethnicity (approximation was not valid, so Fisher's exact test was applied).
+
+We found only the significant relationship between clinical site and losing weight status (p=0.023). Post-hoc two-proportion z-test shows that proportions of people losing weight in different sites are significant different (p=0.002). Most people in site 2 lost weight, while least people in site 5 lost weight.
+
+
+## Construct a simple generalized linear regression model.
+First we construct the full version of generalized linear model for the binary outcome (Losing weight status) for each group
+
+```{r}
+print("==== Control group ====")
+glm_wgt_chng <- glm(Losing_Wgt ~  Gender + age + Site + height + wgt_base + month + comorbid + Education + Marital + Tobacco + Alcohol, family = binomial, data = included.data[included.data$tx == "0", ])
+summary(glm_wgt_chng)
+
+print("==== Intervention group ====")
+glm_wgt_chng <- glm(Losing_Wgt ~  Gender + age + Site + height + wgt_base + month + comorbid + Education + Marital + Tobacco + Alcohol, family = binomial, data = included.data[included.data$tx == "1", ])
+summary(glm_wgt_chng)
+```
+The full model for CG can only find the significant effect of current tobacco use to losing weight, and the full model for IG shows the significant effect of height to losing weight.
+Now we perform model selections using a backward selection method. The best selected/reduced models for both groups are shown below.
+```{r}
+print("==== Control group ====")
+glm_wgt_chng <- glm(Losing_Wgt ~  Gender + Tobacco + Alcohol, family = binomial, data = included.data[included.data$tx == "0", ])
+summary(glm_wgt_chng)
+
+print("==== Intervention group ====")
+glm_wgt_chng <- glm(Losing_Wgt ~  Gender  + height + wgt_base + Tobacco , family = binomial, data = included.data[included.data$tx == "1", ])
+summary(glm_wgt_chng)
+```
+The reduced model for CG shows that gender, tobacco use, and alcohol use are factors with significant effect to losing weight, while the reduced model for IG still can only find the significant effect of height to losing weight.
+
+# Future Study Planning
+## Imagine a further study that extends the questions of interest from your current study
+A further study can investigate in the proportion of achieving outcome (losing weight) after the moderate behavioral weight loss program among tobacco users and non-smoking controls.
+
+
+## Sample size for the new study
+Goal: to achieve 80% power to detect 10% difference in proportion of losing weight after intervention among smoking group and non-smoking group.
+We would expect a higher percentage of losing weight in smoking group than non-smoking group.
+Assuming 70% of participants of the program losing weight.
+From current study, about 82.5% of participants were using tobacco, and 17.5% were not.
+Sample size for comparing two proportions: 
+```{r}
+r = 82.5/17.5
+(n <- ((r+1)/r)*0.7*(1-0.7)*(0.84+1.96)^2/(0.1^2))
+```
+We would need 200 smokers and 200 non-smokers (400 at total) to achieve 80% power.
+
+
+
+# Conclusion and Discussion
+This study investigated the effectiveness of a moderate behavioral weight loss program for overweight adults, in comparison with a lower-intensity weight loss program as control group. 
+There were 166 participants completed their intervention program and included in data analysis (n=76 in IG and n=90 in CG).
+The important findings are: First, participants in IG showed a significant weight loss (mean = -2.48 kg), and this amount was significantly greater than that in CG (mean = -0.79 kg, p-value=0.009), however the percentages of people losing weight after intervention between 2 groups were not different (p=61.1% in CG and p=69.7% in IG, p-value = 0.318); 
+Second, two-sample Chi-squared test showed that proportion of individuals losing weight varied between clinical sites, specifically site 2 and site 4 observed the most and the least percentage (p=81.8% and p=41.7%, respectively);
+Third, the length of intervention program and race/ethnicity do not associate with the amount of weight loss as hypothesized, while only intervention condition-gender interaction and intervention condition-clinical site interaction had significant association to weight loss; Finally, gender and current tobacco and alcohol use are predictors for losing weight in low-intensity program, while losing weight status in moderate intervention can be significantly predicted by only height.
+
+The strengths of this randomized controlled study are the abilities to establish the causal effect of intervention program, reduce bias, control for confounding, and determine treatment-predictive variable interactions. The weakness of this study design can be problem with generalisability (for example, the proportion of race/ethnicity in recruited sample might not be representative of the real-life distribution).
+
+The results from this study have highlighted the effectiveness of the moderate weight loss program (mean weight loss of 2.48 kg over 11.7 months on average), and its superiority over the low-intensity program. This finding can encourage the implementation of this type of intervention for weight loss purpose. Future study can further investigate in the association between intervention time length from randomization and weight loss outcome by, for instance, recording participants' weight at several stages of time (such as every 3 months).
+

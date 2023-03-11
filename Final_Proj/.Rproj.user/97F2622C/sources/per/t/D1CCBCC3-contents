@@ -1,0 +1,174 @@
+---
+title: "CategoricalAnalysis"
+author: "Anh Nguyen"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r}
+rm(list = ls())
+source("utility/setup.r")
+head(included.data, 10)
+```
+
+# Categorical Data Analysis (Limit to no more than 2 pages, excluding figures and tables)
+• Perform simple association test and interpret the results.
+
+• Construct a simple generalized linear regression model
+
+## Some notes
+Association test: (e.g. association between treatment and response, Lec 21) using contingency tables
+
+GLM in this section differs from the Linear Model section, which asking to find the association between continous variables. 
+
+Do logistic regression for binary outcome variable. In this data, what outcome variable is binary? Individual weight loss? Binary outcome can be: losing weight vs not losing weight (wgt_change negative vs >= 0)
+
+- wgt loss status vs.: intervention condition, gender, clinical site, race, education, marital, smoking, drinking
+
+## Perform simple association test
+Create a new column: "losing wgt" (1) for wgt_change < 0 and "not losing wgt" (0) for wgt_change >= 0
+```{r}
+# # library(tibble)
+# included.data <- included.data %>% add_column(Losing_Wgt_Status = if_else(.$wgt_change < 0, "Losing Weight", "Not Losing Weight"))
+# included.data <- included.data %>% add_column(Losing_Wgt = if_else(.$wgt_change < 0, 1, 0))
+```
+
+
+Contingency table: association between wgt loss status vs intervention condition
+
+```{r}
+addmargins(table(included.data$Condition, included.data$Losing_Wgt_Status))
+Expected = c(90*108, 76*108, 90*58, 76*58) / 166
+matrix(Expected, nrow =2 ) # no cell have expected value <5 => use Chi-squared test for association
+
+chisq.test(table(included.data$Condition, included.data$Losing_Wgt_Status))
+```
+No significant difference between losing weight status between 2 intervention groups
+
+```{r, losing_weight vs. gender}
+addmargins(table(included.data$Gender, included.data$Losing_Wgt_Status))
+Expected = c(108*26, 108*140, 58*26, 58*140) / 166
+matrix(Expected, nrow =2 ) # no cell have expected value <5 => use Chi-squared test for association
+
+chisq.test(table(included.data$Gender, included.data$Losing_Wgt_Status))
+```
+
+No association between gender and losing weight
+
+
+```{r, losing_weight vs. clinical site}
+addmargins(table(included.data$Site, included.data$Losing_Wgt_Status))
+chisq.test(table(included.data$Site, included.data$Losing_Wgt_Status))$expected
+# no cell have expected value <5 => use Chi-squared test for association
+
+chisq.test(table(included.data$Site, included.data$Losing_Wgt_Status))
+(p.site1 <- 24/38)
+(p.site2 <- 36/44)
+(p.site3 <- 25/40)
+(p.site4 <- 13/20)
+(p.site5 <- 10/24)
+```
+
+Proportions of people losing wgt in different sites are different. Most people in site 2 lost weight, while least people in site 5 lost weight.
+
+
+```{r, losing_weight vs race}
+addmargins(table(included.data$Race, included.data$Losing_Wgt_Status))
+chisq.test(table(included.data$Race, included.data$Losing_Wgt_Status))$expected
+# 2/8 cells have expected values less than 5, and 1 cell has value <1 => Use Fisher's exact test
+
+fisher.test(table(included.data$Race, included.data$Losing_Wgt_Status), simulate.p.value = TRUE)
+```
+
+No association between race and losing weight status
+
+```{r, losing wgt vs education}
+addmargins(table(included.data$Education, included.data$Losing_Wgt_Status))
+chisq.test(table(included.data$Education, included.data$Losing_Wgt_Status))$expected
+# no cell have expected value <5 => use Chi-squared test for association
+
+chisq.test(table(included.data$Education, included.data$Losing_Wgt_Status))
+```
+No association between education level and losing weight
+
+```{r, losing_wgt vs marital status}
+addmargins(table(included.data$Marital, included.data$Losing_Wgt_Status))
+chisq.test(table(included.data$Marital, included.data$Losing_Wgt_Status))$expected
+# no cell have expected value <5 => use Chi-squared test for association
+
+chisq.test(table(included.data$Marital, included.data$Losing_Wgt_Status))
+```
+No association between marital status and losing weight
+
+```{r, losing weight vs smoking}
+addmargins(table(included.data$smoker, included.data$Losing_Wgt_Status))
+chisq.test(table(included.data$smoker, included.data$Losing_Wgt_Status))$expected
+# no cell have expected value <5 => use Chi-squared test for association
+
+chisq.test(table(included.data$smoker, included.data$Losing_Wgt_Status))
+```
+No association between current tobacco use and losing weight
+
+```{r, losing weight vs drinking}
+addmargins(table(included.data$drinker, included.data$Losing_Wgt_Status))
+chisq.test(table(included.data$drinker, included.data$Losing_Wgt_Status))$expected
+# no cell have expected value <5 => use Chi-squared test for association
+
+chisq.test(table(included.data$drinker, included.data$Losing_Wgt_Status))
+```
+
+No association between current tobacco use and losing weight
+
+
+
+
+## Construct a simple generalized linear regression model
+Do logistic regression for categorical outcomes (binary or dichotomous)
+
+Incorporate multiple predictors to control them in testing association with outcome (Losing_Wgt_Status)
+
+Also do: multiple linear regression for. wgt_change (continous outcome) vs continuous variables (height, age, wgt_base, ...)
+Higher-way ANOVA for wgt_change vs intervention condition +  categorical variables (above + nonparamentric variables like month and comorbid)
+
+https://www.r-bloggers.com/2017/12/linear-mixed-effect-models-in-r/
+
+
+```{r, multiple logistic regression}
+
+model.log <- glm(Losing_Wgt ~ wgt_base + age + height, data = included.data)
+summary(model.log)
+
+```
+
+```{r, linear mixed (continous+categorical, hypothesized predicted should be included) model for ANOVA}
+
+```
+```{r, higher-way ANOVA}
+
+```
+
+
+Linear mixed-model can be overkill here...
+
+```{r}
+glm_wgt_chng <- glm(Losing_Wgt ~ Condition + Gender + age + Site + height + wgt_base + month + comorbid + Education + Marital + Tobacco + Alcohol, family = binomial, data = included.data)
+summary(glm_wgt_chng)
+
+glm_wgt_chng <- glm(Losing_Wgt ~ age + height + Alcohol, family = binomial, data = included.data)
+summary(glm_wgt_chng)
+```
+
+```{r}
+glm_wgt_chng <- glm(Losing_Wgt ~  Gender + age + Site + height + wgt_base + month + comorbid + Education + Marital + Tobacco + Alcohol, family = binomial, data = included.data[included.data$tx == "0", ])
+summary(glm_wgt_chng)
+
+glm_wgt_chng <- glm(Losing_Wgt ~  Gender + age + Site + height + wgt_base + month + comorbid + Education + Marital + Tobacco + Alcohol, family = binomial, data = included.data[included.data$tx == "1", ])
+summary(glm_wgt_chng)
+```
+```{r}
+glm_wgt_chng <- glm(Losing_Wgt ~  Gender + Tobacco + Alcohol, family = binomial, data = included.data[included.data$tx == "0", ])
+summary(glm_wgt_chng)
+
+glm_wgt_chng <- glm(Losing_Wgt ~  Gender  + height + wgt_base + Tobacco , family = binomial, data = included.data[included.data$tx == "1", ])
+summary(glm_wgt_chng)
+```

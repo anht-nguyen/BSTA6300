@@ -1,0 +1,42 @@
+library(dplyr, quietly = TRUE, warn.conflicts = FALSE)
+library(ggplot2, quietly = TRUE, warn.conflicts = FALSE)
+library(ggpattern, quietly = TRUE, warn.conflicts = FALSE)
+library(tikzDevice, quietly = TRUE, warn.conflicts = FALSE)
+library(tidyverse, quietly = TRUE, warn.conflicts = FALSE)
+library(boot, quietly = TRUE, warn.conflicts = FALSE)
+library(tidyr, quietly = TRUE, warn.conflicts = FALSE)
+library(tidyverse, quietly = TRUE, warn.conflicts = FALSE) # about ggplot2: https://datacarpentry.org/R-ecology-lesson/04-visualization-ggplot2.html
+# library(histogram, quietly = TRUE, warn.conflicts = FALSE)
+
+# library 'mosaic' is used for displaying histogram, separating control and intervention group
+#https://journal.r-project.org/archive/2017/RJ-2017-024/RJ-2017-024.pdf
+library(mosaic, quietly = TRUE, warn.conflicts = FALSE) 
+library(tibble)
+
+library(table1, quietly = TRUE, warn.conflicts = FALSE) #https://github.com/benjaminrich/table1
+
+source("./utility/load_data.r")
+source("./utility/r_utility_functions.r")
+
+options(tikzDocumentDeclaration = "\\documentclass[10pt]{article}")
+
+out_dir <- file.path("./output")
+dir.create(out_dir, showWarnings = FALSE)
+
+library(lemon, quietly = TRUE, warn.conflicts = FALSE)
+knit_print.data.frame <- lemon_print
+
+knitr::opts_chunk$set(dpi = 900)
+options(width = 140)
+
+plt_theme <- plot_theme(cust_color(8))
+
+
+
+
+## Styling for tables/figures
+table1.styles <- "Rtable1-grid"
+
+
+
+

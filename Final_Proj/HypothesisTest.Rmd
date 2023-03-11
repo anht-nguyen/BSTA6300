@@ -1,0 +1,127 @@
+---
+title: "Hypothesis_Test"
+author: "Anh Nguyen"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r, include=FALSE}
+rm(list = ls())
+source("utility/setup.r")
+head(included.data, 10)
+```
+
+# Hypothesis Testing (Limit to no more than 1 page)
+
+• Translate the scientific questions of your interest into null and alternative hypotheses.
+
+• Choose appropriate approaches for hypothesis testing. Justify your choice of test and discuss potential issues that you might have in making your choice.
+
+• Carry out the test and interpret your results. Check assumptions if applicable.
+
+## What are the questions?
+
+-   How much weight loss do two groups (intervention and control) achieve? Do intervention group lose more weight than the control group do?
+
+-   Which factors significantly influence the weight loss outcomes and which factors do not?
+
+-   Does intervention duration correlate with the weight loss outcomes?
+
+-   which factors predict better outcome?
+
+## Some Notes
+
+which test is used for testing changes?
+
+Post and pre intervention measurements are dependent =\> paired t-test
+
+
+
+Here normality of wgt_base and wgt_final is assumed??? 
+
+[Action] Have to check the assumption of normality or validity for normal approximation 
+
+
+
+
+## Weight changes pre and post intervention
+
+### Are weight losses in 2 group significant?
+
+H1: mean weights at pre and post-intervention are different in both group
+
+Using paired t-test
+
+```{r}
+t.test(
+  x = included.data[included.data$tx==0,]$wgt_final,
+  y = included.data[included.data$tx==0,]$wgt_base,
+  paired = TRUE,
+  mu = 0,
+  alternative = "two.sided",
+  conf.level = 0.95
+)
+
+t.test(
+  x = included.data[included.data$tx==1,]$wgt_final,
+  y = included.data[included.data$tx==1,]$wgt_base,
+  paired = TRUE,
+  mu = 0,
+  alternative = "two.sided",
+  conf.level = 0.95
+)
+```
+The weight difference in CG is not significant (p=0.072, mean = -0.794)
+Intervention group show significant weight loss (mean = -2.48, p = 3.8e-5)
+
+
+### Do intervention group lose more weight than the control group do?
+
+```{r}
+head(included.data$wgt_change, 20)
+histogram(~wgt_change| Condition, data = included.data, fit = "normal")
+table1(~ wgt_change | Condition, data = included.data, topclass=table1.styles, overall=F, extra.col=list(`P-value`=pvalue))
+```
+
+P-value (p=0.00196) here rejects the hypothesis that mean weight losses in 2 groups are equal. Not test if which group lost more weight.
+
+Code below will test :
+H0: weight loss in intervention group is no less than in the control group 
+vs. 
+H1: intervention group lose more weight than the control group do
+
+First, Test equal sample variance between wgt_change in 2 groups
+```{r}
+var.test(
+  x = included.data[included.data$tx==0,]$wgt_change,
+  y = included.data[included.data$tx==1,]$wgt_change,
+  ratio = 1,
+  alternative = "two.sided",
+  conf.level = 0.95
+)
+```
+Variance difference in wgt_change between 2 groups is not significant (p=0.113)
+
+Now, assuming equal population variance in wgt_change between 2 groups, we test the difference in mean wgt_change using one.sided test:
+```{r}
+t.test(
+  x = included.data[included.data$tx==1,]$wgt_change,
+  y = included.data[included.data$tx==0,]$wgt_change,
+  mu = 0,
+  var.equal = TRUE,
+  alternative = "less",
+  conf.level = 0.95
+)
+```
+weight loss in intervention group is significantly more than in CG (p=0.009)
+
+
+### Which factors significantly influence the weight loss outcomes and which factors do not?
+
+Do this question in Linear model. Hypothesis testing section ends here
+
+
+
+
+
+

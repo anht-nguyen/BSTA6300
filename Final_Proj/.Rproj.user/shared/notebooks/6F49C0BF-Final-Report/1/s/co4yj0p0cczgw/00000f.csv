@@ -1,0 +1,1 @@
+"0","table1(~ wgt_base + wgt_final + month + wgt_change +  Losing_Wgt_Status | Condition, data = included.data, topclass=table1.styles, overall=F, extra.col=list(`P-value`=pvalue))"

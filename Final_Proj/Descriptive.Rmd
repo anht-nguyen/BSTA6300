@@ -1,0 +1,124 @@
+---
+title: "Descriptive"
+author: "Anh Nguyen"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r}
+rm(list = ls())
+source("utility/setup.r")
+head(included.data, 10)
+```
+
+# Data Description (Limit to no more than 1 page, excluding tables and figures)
+
+• Describe the data collection and study design.
+
+• Choose and describe the primary and secondary outcomes (at least one continuous and one binary/categorical) and other relevant variables.
+
+• Consider the relationship among the selected variables.
+
+• Evaluate the potential distribution of your outcome variables, using graphical methods and summary statistics. If there is any missing data, they should be described in this section.
+
+• Comment on normal and binomial/multinomial distribution assumptions.
+
+
+## Relationship - hypotheses: 
+- baseline weight: higher at female, african and hispanic american, 
+- weight loss:
+  - positive correlation between months and weight loss
+  - more weight loss are seen at: intervention group 
+  - no difference between sites
+
+## References:
+https://cran.r-project.org/web/packages/table1/vignettes/table1-examples.html
+
+
+## Describe demographics: Summary statistics
+Count the number of records for each categories and show percentages:
+e.g.: # of ppl of each gender, education, marital status, tobacco use, alcohol use (binary, use a same table with 3 columns),
+  # of ppl of each site (5), race (4)
+
+
+```{r, demographics}
+table1(~ Site + Gender + age + height + Race + comorbid + Education + Marital + Tobacco + Alcohol | Condition, data = included.data, topclass=table1.styles, overall=F, extra.col=list(`P-value`=pvalue))
+```
+No significant differences in demographics between 2 groups.
+
+```{r}
+histogram(~age | Condition, data = included.data, fit = "normal")
+histogram(~height | Condition, data = included.data, fit = "normal")
+bargraph(~comorbid | Condition, data = included.data)
+
+```
+```{r, multinomial distribution}
+bargraph(~site | Condition, data = included.data)
+bargraph(~Race | Condition, data = included.data)
+```
+
+## Describe intervention outcomes: summary statisics and graphical methods
+baseline wgt, final wgt, months
+histogram/bar chart/scatter , mean, sd
+
+
+No significant differences in outcome variables between 2 groups
+```{r, summary}
+table1(~ wgt_base + wgt_final + month | Condition, data = included.data, topclass=table1.styles, overall=F, extra.col=list(`P-value`=pvalue))
+```
+
+```{r, histogram}
+histogram(~wgt_base | Condition, data = included.data, fit = "normal")
+histogram(~wgt_final | Condition, data = included.data, fit = "normal")
+histogram(~month | Condition, data = included.data)
+```
+```{r, boxplots}
+
+ggplot(data = included.data, mapping = aes(x = Condition, y = wgt_base)) +
+  plt_theme +
+  geom_violin(width = .5) +
+  geom_boxplot(
+    width = 0.25,
+    outlier.size = 1.5) +
+  stat_summary(
+  fun = "mean",
+  geom = "point",
+  size = 4,
+  shape = 18
+  # https://ggplot2.tidyverse.org/articles/ggplot2-specs.html#sec:shape-spec
+  ) 
+   
+
+
+```
+
+
+Maybe trying some QQ plot? => another method to visualize distribution (check normal distribution <=> a perfect straight diagonal line
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+)
+
+
+### Test normality or determine the underlying distribution of variables
+
+Varibles seemingly not normal: month, cormobid
+
+Test normality of: age, height, wgt_base, wgt_final
+
+Use shapiro wilk test
+

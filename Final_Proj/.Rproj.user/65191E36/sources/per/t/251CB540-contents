@@ -1,0 +1,162 @@
+---
+title: "LinearModel"
+author: "Anh Nguyen"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r, include=FALSE}
+rm(list = ls())
+source("utility/setup.r")
+head(included.data, 10)
+```
+
+# Linear Model (Limit to no more than 2 pages, excluding figures and tables)
+
+• Construct linear model(s) to answer ONE OR MORE of the research questions of interest.
+
+• Justify the procedures or reasons for model and variable selection.
+
+• Fit the model and interpret parameter estimates and confidence intervals if applicable.
+
+• Do model diagnosis using graphical and statistical tools and discuss appropriate remedy procedures if needed.
+
+## Research Questions
+
+-   which factors predict better outcome (weight change/loss)? 
+
+Variables to be tested: baseline weight, month, 
+
+Other candidates: demographics variables eg, age, ethnic, height, etc.
+
+
+## Some notes
+We can start with some linear fitting figure to get a sense of relationship between variables
+
+Linear model: between 2 continuous variables
+
+ANOVA: relationship between 1 continuous variables and 1 categorical
+
+Both categorical vars: contingency table (will look at this in Categorical Analysis)
+
+Multiple regression 
+
+How about controlling confounding factors? 
+  Multiple-regression analysis allows us to identify which few variables among a large set of independent variables have a significant relationship to the dependent variable after adjusting for other important variables.
+
+Also need to check goodness-of-fit for linear models
+
+### Figures
+```{r}
+xyplot(wgt_change ~ age | Condition , data = included.data)
+
+xyplot(wgt_change ~ wgt_base | Condition , data = included.data)
+
+xyplot(wgt_change ~ height | Condition , data = included.data)
+
+xyplot(wgt_change ~ month | Condition , data = included.data)
+
+xyplot(wgt_change ~ comorbid | Condition , data = included.data)
+
+```
+
+
+## Build a multi regression model
+Continuous variables: baseline weight, month (not normal), height, comorbid (not normal), age 
+
+Fit the linear model
+```{r, control group}
+(linear.m0 <- lm(wgt_change ~ wgt_base + age + height, data = included.data[included.data$tx==0,], x = TRUE))
+anova(linear.m0)
+```
+
+No evidence of strong linear relationship
+Anova: fail to reject H0: all betas = 0
+
+```{r, intervention group}
+(linear.m1 <- lm(wgt_change ~ wgt_base + age + height, data = included.data[included.data$tx==1,], x = TRUE))
+anova(linear.m1)
+```
+No evidence of strong linear relationship
+Anova: fail to reject H0: all betas = 0
+
+
+## ANOVA: weight change (cont) vs intervention + a categorical variable 
+
+Actually we can use 2-way ANCOVA to control covariates, such as difference in obesity between race/ethnicity or gender.
+
+```{r}
+mod1 = lm(wgt_change ~ Condition * Gender, data = included.data)
+plot(mod1, which = 2)
+wgt_chgn_aov1 <- aov(mod1)
+summary(wgt_chgn_aov1)
+
+```
+```{r}
+mod1 = lm(wgt_change ~ Condition * Race, data = included.data)
+plot(mod1, which = 2)
+wgt_chgn_aov1 <- aov(mod1)
+summary(wgt_chgn_aov1)
+```
+```{r}
+mod1 = lm(wgt_change ~ Condition * Marital, data = included.data)
+plot(mod1, which = 2)
+plot(mod1, add.smooth = FALSE, which = 3)
+wgt_chgn_aov1 <- aov(mod1)
+summary(wgt_chgn_aov1)
+```
+
+```{r}
+mod1 = lm(wgt_change ~ Condition * Tobacco, data = included.data)
+plot(mod1, which = 2)
+plot(mod1, add.smooth = FALSE, which = 3)
+wgt_chgn_aov1 <- aov(mod1)
+summary(wgt_chgn_aov1)
+```
+
+```{r}
+mod1 = lm(wgt_change ~ Condition * Alcohol, data = included.data)
+plot(mod1, which = 2)
+plot(mod1, add.smooth = FALSE, which = 3)
+wgt_chgn_aov1 <- aov(mod1)
+summary(wgt_chgn_aov1)
+```
+```{r}
+mod1 = lm(wgt_change ~ Condition * Site, data = included.data)
+plot(mod1, which = 2)
+plot(mod1, add.smooth = FALSE, which = 3)
+wgt_chgn_aov1 <- aov(mod1)
+summary(wgt_chgn_aov1)
+```
+
+```{r}
+mod1 = lm(wgt_change ~ Condition * month, data = included.data)
+plot(mod1, which = 2)
+plot(mod1, add.smooth = FALSE, which = 3)
+wgt_chgn_aov1 <- aov(mod1)
+summary(wgt_chgn_aov1)
+# kruskal.test(
+#   x = included.data[included.data$tx==1,]$wgt_change,
+#   g = included.data[included.data$tx==1,]$month
+# )
+# kruskal.test(
+#   x = included.data[included.data$tx==0,]$wgt_change,
+#   g = included.data[included.data$tx==0,]$month
+# )
+```
+```{r}
+mod1 = lm(wgt_change ~ Condition * comorbid, data = included.data)
+plot(mod1, which = 2)
+wgt_chgn_aov1 <- aov(mod1)
+summary(wgt_chgn_aov1)
+```
+```{r}
+# kruskal.test(
+#   x = included.data[included.data$tx==1,]$wgt_change,
+#   g = included.data[included.data$tx==1,]$comorbid
+# )
+# kruskal.test(
+#   x = included.data[included.data$tx==0,]$wgt_change,
+#   g = included.data[included.data$tx==0,]$comorbid
+# )
+```

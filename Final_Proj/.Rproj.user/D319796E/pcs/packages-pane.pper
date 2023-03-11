@@ -1,0 +1,7 @@
+{
+    "installOptions": {
+        "installFromRepository": true,
+        "libraryPath": "C:/Users/tuna28ng/OneDrive - PennO365/UPenn/BE UPenn/Courses/F22/BSTA 6300/R_Proj/Final_Proj/renv/library/R-4.2/x86_64-w64-mingw32",
+        "installDependencies": true
+    }
+}

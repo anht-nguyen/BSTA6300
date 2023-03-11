@@ -1,0 +1,94 @@
+library(tidyverse)
+library(lubridate)
+library(magrittr)
+library(haven)
+
+### load data      ###    
+setwd("C:/Users/ruifeng/Documents/teaching/BSTA630/BSTA630_2022/Lecture14_OneWay_ANOVA")
+load(file = "clover.RData")
+attach(clover)
+
+### Summary statistics ------------------------------------------------------
+nitrogen.byS<-split(Nitrogen, Strain)
+n_i<-table(Strain) #n_i
+y_mean_i<-sapply(nitrogen.byS, mean) #group mean y_bar_i
+y_mean<-sum(n_i*y_mean_i)/sum(n_i)
+
+
+### One-way ANOVA -----------------------------------------------------------
+
+nitrogen.anova <- aov(formula = Nitrogen ~ Strain, data = clover)
+nitrogen.anova$terms
+summary(nitrogen.anova)
+anova(nitrogen.anova)
+
+#### check model assumptions ####
+predicted<-predict(nitrogen.anova)
+residual<-resid(nitrogen.anova)
+
+plot(predicted, residual, col="blue", pch=19)
+abline(h=0, lty=3, col="red")
+
+library(car)
+leveneTest(Nitrogen ~ Strain, data = clover)
+
+qqnorm(residual, cel=0.7, col="blue"); qqline(residual, col = 2)
+
+# Create numerical groups and ranks
+clover <- clover %>%
+  mutate(
+    Strain.groups = 0,
+    Strain.groups = replace(Strain.groups, Strain == "3DOK1", 1),
+    Strain.groups = replace(Strain.groups, Strain == "3DOK5", 2),
+    Strain.groups = replace(Strain.groups, Strain == "3DOK4", 3),
+    Strain.groups = replace(Strain.groups, Strain == "3DOK7", 4),
+    Strain.groups = replace(Strain.groups, Strain == "3DOK13", 5),
+    Strain.groups = replace(Strain.groups, Strain == "COMPOS", 6),
+    Ranks = rank(Nitrogen)
+  )
+
+
+# Summary statistics ------------------------------------------------------
+
+clover.summary <- clover %>%
+  group_by(Strain.groups, Strain) %>%
+  summarise(
+    N = n(),
+    MEAN = mean(Nitrogen),
+    SD = sd(Nitrogen),
+    SUM.RANK = sum(Ranks),
+    MEAN.RANK = mean(Ranks)
+  )
+clover.summary
+
+
+# Kruskal-Wallis test -----------------------------------------------------
+# overall sample size
+n <- nrow(clover)
+# number of groups
+k <- length(unique(clover$Strain.groups))
+# H with no tie in Equation 12.26
+(12/(n*(n + 1)))*sum(clover.summary$SUM.RANK^2/clover.summary$N) - 3*(n + 1)
+# H with no tie in Equation 12.27
+( H.star <- (12/(n*(n + 1)))*sum(clover.summary$N*(clover.summary$MEAN.RANK - mean(clover$Ranks))^2) )
+# look for ties
+table(clover$Nitrogen)
+# There is one tie group at 19.4, t1 = 3
+t <- 3
+( H <- H.star/(1 - sum(t^3 - t)/(n^3 - n)) )
+# critical value
+qchisq(p = 0.95, df = k - 1)
+# p-value
+pchisq(q = H, df = k - 1, lower.tail = FALSE)
+
+kruskal.test(
+  x = clover$Nitrogen,
+  g = clover$Strain.groups
+)
+
+
+# Exact distribution ------------------------------------------------------
+
+factorial(n)/prod(factorial(clover.summary$N))
+format(factorial(n)/prod(factorial(clover.summary$N)), big.mark=",")
+# 88 quintillion (1 quintillion = 18 zeros)

@@ -1,0 +1,38 @@
+---
+title: "all_analysis"
+author: "Anh Nguyen"
+date: "`r Sys.Date()`"
+output: pdf_document
+---
+
+```{r}
+knitr::opts_knit$set(root.dir = getwd())
+```
+
+# Introduction
+
+# Data Description
+```{r norms, child='Descriptive.Rmd'}
+```
+
+# Point Estimates and Confidence Intervals
+```{r norms, child='Estimate_CI.Rmd'}
+```
+
+# Hypothesis Testing
+```{r norms, child='HypothesisTest.Rmd'}
+```
+
+
+# Linear Model
+```{r norms, child='LinearModel.Rmd'}
+```
+
+# Categorical Data Analysis
+```{r norms, child='CategoricalAnalysis.Rmd'}
+```
+
+# Future Study Planning 
+
+
+# Conclusion and Discussion
